@@ -133,21 +133,13 @@ strUpdate="update Sample set   Shipper='"&Shipper&"',ShipperName='"&ShipperName&
 
 
 end if
-    strcheckCTOVP = "select * from SampleFocusInfo where su_no ='" & su_no & "'"
-    set checkCTOVP = objConn.execute(strcheckCTOVP)
+
 
 
 
 'Response.Write strUpdate
 'response.end
 objConn.execute(strUpdate)
-    if not checkCTOVP.eof then
-    if RSSample("TEXT07") = "Y" then
-    strupdateCTOVP = "update Sample set currentstatus = 'CTOVP',currentStatusName = 'CTOVP Approve',currentUser = '"& checkCTOVP("CTO")&","& checkCTOVP("VP") &"',currentrole='CTOVP' where su_no='"&su_no&"'"
-    objConn.execute(strupdateCTOVP)
-    sendtoid=trim(checkCTOVP("CTO"))
-    end if
-    end if
 strupdatemodifydate="update Sample set lastmodifydate=getdate() where su_no='"&su_no&"'"
 objConn.execute(strupdatemodifydate)
 strLog="Insert into userAction(userid,username,occurtime,su_no,actiondesc) values('"&currentuser&"','"&currentusername&"',getdate(),'"&su_no&"','Approved Sample')"
@@ -235,6 +227,20 @@ if CEVPflag="Y" then
 	session("memo1")="This Sample is submitted to"							   '核準後顯示的畫面
 	session("memo2")=toname								'核準後顯示的畫面
 	session("memo3")="for approve"								 '核準後顯示的畫面
+else
+'	session("mailccsubject")="Sample C.C. Notice : Sample request has been approved  " & su_no &" ["& trim(S_Customer)  &"]- "& product_no  &" ("& product  &") [Sample " & trim(times) & " times, Fail :  " & trim(fail) & " times]"
+    session("mailccsubject")="Sample C.C. Notice : Sample request has been approved  " & su_no &" ["& trim(S_Customer)  &"]- "& ccsubject
+	session("mailccbody")=fname&" [ SBU Manager  ] approve this Sample. " &"<br><br>"&ccbody &"Customer :  " & trim(S_Customer) & "<br>Product Series :  " & trim(Product) & "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant
+'    session("mailccbody")=fname&" [ SBU Manager  ] approve this Sample. " &"<br><br>Sample :  " & trim(times) & " times, Fail :  " & trim(fail) & " times <br>Customer :  " & trim(S_Customer) & "<br>Product Series :  " & trim(Product) & "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant
+    session("mailfname")=fname
+	session("mailstrhtml")=strHTML
+	session("mailsubject")="Sample approve Notice : Sample request "& su_no  &"  has been approved , Please preparing sample and sending.!"
+	session("mailbody")=fname&" [ SBU Manager] approve this Sample, Please preparing sample and sending. !<br><br>"&ccbody &" Customer :  " & trim(S_Customer) & "<br>Product Series :  " & trim(Product) & "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant
+	session("memo1")="This Sample is submitted to"							   '核準後顯示的畫面
+	session("memo2")=toname								'核準後顯示的畫面
+	session("memo3")="for sending"
+end if
+
 	session("turnurl")="../Management/Sample_View.asp?su_no="&su_no&"&currentrole="&ToRole&"&currentuser="&sendtoid&"&sys01=" & systemid&"&webflag=1"     'mail後要返回的網址
 
 
@@ -251,84 +257,5 @@ if CEVPflag="Y" then
 
 	response.redirect"/public/Pub_MailSend.asp"
     Response.end
-else
-	ccsubject="Sample C.C. Notice : Sample request has been approved  " & su_no &"[測試] ["& trim(S_Customer)  &"]- "& ccsubject
-	ccbody=fname&" [ SBU Manager  ] approve this Sample. " &"<br><br>"&ccbody &"Customer :  " & trim(S_Customer) & "<br>Product Series :  " & trim(Product) & "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant
-	subject="Sample approve Notice : Sample request "& su_no  &"  has been approved , Please preparing sample and sending.!"
 
-
-
-	
-
-					'start region
-					toUser=trim(checkCTOVP("CTO"))
-					toRole="CTO"
-					strToUser="select * from EIPUser where userid='"&trim(checkCTOVP("CTO"))&"'"
-					set rsToUser=objConn.execute(strToUser)
-					if not rsToUser.eof  then					
-						toemail=rsToUser("userEmail")&","
-						toUserName=rsToUser("userForeignName")&","						
-						
-						sendToPage="Sample_Approve.asp"
-						strHTML="<A HREF='" & ServerFulladdr & "/Management/Sample_Approve.asp?su_no="& su_no & "&currentrole=" & ToRole & "&currentuser=" & toUser  & "&systemid=" & systemeip & "&Assignflag=" & Assignflag & "&webflag=0" &"'>"&su_no&"</A>"
-						
-						strHost = SMTPHost
-						Set Mail = Server.CreateObject("Persits.MailSender")
-						Mail.CharSet = "BIG5"
-						Mail.Host = SMTPHost
-						Mail.From = femail
-						Mail.FromName = fname
-						Mail.AddAddress toemail               
-						Mail.IsHTML = True
-						Mail.Subject=subject
-						Mail.Body="<font size='2'  face='Arial'> "&fname&" [ SBU Manager] approve this Sample, Please preparing sample and sending. !<br><br>"&ccbody &" Customer :  " & trim(S_Customer) &  "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant & "<BR>Document Link : "& strHTML  &"</font>"
-						Mail.send						
-					end if
-					'end region
-	'start region
-					toUser=trim(checkCTOVP("VP"))
-					toRole="VP"
-					strToUser="select * from EIPUser where userid='"&trim(checkCTOVP("VP"))&"'"
-					set rsToUser=objConn.execute(strToUser)
-					if not rsToUser.eof  then					
-						toemail=rsToUser("userEmail")&","
-						toUserName=rsToUser("userForeignName")&","						
-						
-						sendToPage="Sample_Approve.asp"
-						strHTML="<A HREF='" & ServerFulladdr & "/Management/Sample_Approve.asp?su_no="& su_no & "&currentrole=" & ToRole & "&currentuser=" & toUser  & "&systemid=" & systemeip & "&Assignflag=" & Assignflag & "&webflag=0" &"'>"&su_no&"</A>"
-						
-						strHost = SMTPHost
-						Set Mail = Server.CreateObject("Persits.MailSender")
-						Mail.CharSet = "BIG5"
-						Mail.Host = SMTPHost
-						Mail.From = femail
-						Mail.FromName = fname
-						Mail.AddAddress toemail               
-						Mail.IsHTML = True
-						Mail.Subject=subject
-						Mail.Body="<font size='2'  face='Arial'> "&fname&" [ SBU Manager] approve this Sample, Please preparing sample and sending. !<br><br>"&ccbody &" Customer :  " & trim(S_Customer) &  "<br>Request Date : " & trim(RequestDate) & "<br>Request By : "& Applicant & "<BR>Document Link : "& strHTML  &"</font>"
-						Mail.send						
-					end if
-					'end region
-	'====================================================
-				
-				'--------------send ccemail --------------------------				
-				strccHTML="<A HREF='"&ServerFulladdr&"/Management/Sample_View.asp?su_no="& su_no&"&webflag=0'>"&su_no&"</A><br>"				
-				strHost = SMTPHost
-				Set MailCC = Server.CreateObject("Persits.MailSender")
-				MailCC.CharSet = "BIG5"
-				MailCC.Host = strHost
-				MailCC.From = femail
-				MailCC.FromName = fname
-				ccemail=UniqueString(ccemail,",")
-				ccemail_array=split(ccemail,",")
-				for x=0 to (ccemail_array)-1
-					Mailcc.AddAddress  trim(ccemail_array(x))
-				next
-				MailCC.IsHTML = True
-				MailCC.Subject=ccsubject
-				MailCC.Body="<font size='2'  face='Arial'> "&ccbody& "<BR>Document Link : "& strccHTML &"<br>System Notice Time : "& currentTime &"<br>Link to EIP System : "& strHTMLEIP&"</font>"
-				MailCC.send
-				'====================================================
-	end if
 %>
